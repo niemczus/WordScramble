@@ -17,23 +17,36 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var showingError = false
     
+    @State private var score = 0
+    
     var body: some View {
         NavigationView {
-            List {
-                Section {
-                    TextField("Enter your word", text: $newWord)
-                        .autocapitalization(.none)
-                }
-                Section {
-                    ForEach(usedWords, id: \.self) { word in
-                        HStack {
-                            Image(systemName: "\(word.count).circle.fill")
-                            Text(word)
+            VStack(spacing: 20){
+                Text("Score: \(score)")
+                    .foregroundColor(.orange)
+                List {
+                    Section {
+                        TextField("Enter your word", text: $newWord)
+                            .autocapitalization(.none)
+                    }
+                    Section {
+                        ForEach(usedWords, id: \.self) { word in
+                            HStack {
+                                Image(systemName: "\(word.count).circle.fill")
+                                Text(word)
+                            }
                         }
                     }
                 }
             }
             .navigationTitle(rootWord)
+            .toolbar {
+                ToolbarItem (placement: .bottomBar) {
+                    Button("New Game") {
+                        startGame()
+                    }
+                }
+            }
         }
         
         .onSubmit(addNewWord)
@@ -66,10 +79,20 @@ struct ContentView: View {
             return
         }
         
+        guard isAllow(word: answer) else {
+            wordError(title: "Word is disallow!", message: "You can't use strat word or shorter than three letters")
+            return
+        }
+        
         
         withAnimation {
             usedWords.insert(answer, at: 0)
         }
+        
+        let answerCount = answer.count
+        
+        score += answerCount
+        
         
         newWord = ""
     }
@@ -79,6 +102,9 @@ struct ContentView: View {
             if let startWords = try? String(contentsOf: startWordsURL) {
                 let allWords = startWords.components(separatedBy: "\n")
                 rootWord = allWords.randomElement() ?? "silkworm"
+                score = 0
+                newWord = ""
+                usedWords = []
                 return
             }
         }
@@ -111,6 +137,13 @@ struct ContentView: View {
         
         return misspelledRange.location == NSNotFound
         
+    }
+    
+    func isAllow (word: String) -> Bool {
+        if word == rootWord || word.count < 3 {
+            return false
+        }
+        return true
     }
     
     func wordError(title: String, message: String) {
